@@ -273,6 +273,8 @@ void get_planes(cv::Mat &labels, std::vector<cv::Vec4f> &planes, cv::InputArray 
  * @param height  Square height
  * @return
  */
+// 体素采样 根据所有点云的最大最小坐标范围 体素块大小 分割体素块 用字典表示 字典键为体素标号(三个坐标) 值为在该体素块内的点云序号
+// 计算体素块内的平均坐标，遍历体素块内的点云与平均坐标最近点作为该体素的采样
 bool VoxelGrid(cv::Mat &sampling_pts, cv::Mat &pts, float length, float width, float height) {
     const int size = pts.rows;
     using namespace std;
@@ -387,6 +389,7 @@ bool VoxelGrid(cv::Mat &sampling_pts, cv::Mat &pts, float length, float width, f
  * @param sample_num  The number of points used to fit the plane
  * @return is the fitting result valid
  */
+// 最佳拟合平面使用最小二乘特征值分解的方法求解
 bool total_least_squares_plane_estimate(cv::Vec4f &model, const cv::Mat &input, const int *sample, int sample_num) {
     const float *pts_ptr = (float *) input.data;
 
@@ -432,7 +435,7 @@ bool total_least_squares_plane_estimate(cv::Vec4f &model, const cv::Mat &input, 
 
     cv::Mat eigenvalues;
     cv::Mat eigenvectors(3, 3, CV_32F);
-    cv::eigen(pd_mat, eigenvalues, eigenvectors);
+    cv::eigen(pd_mat, eigenvalues, eigenvectors); //计算特征值特征向量
     const float *eig_ptr = (float *) eigenvectors.data;
 
     float a = eig_ptr[6], b = eig_ptr[7], c = eig_ptr[8];
@@ -456,6 +459,7 @@ bool total_least_squares_plane_estimate(cv::Vec4f &model, const cv::Mat &input, 
  * @param best_inls  The number of interior points of the best model. If there is no chance that the number of interior points is greater than this value, the calculation will be terminated
  * @return number of points
  */
+// 这里有一个剪枝策略 就是先计算2/3的点数 对于后1/3的点当前平面内点数+未遍历点数<最佳平面点数 则该平面不是最佳平面 可忽略
 int get_inliers(bool *inliers, const cv::Vec4f &model, const cv::Mat &pts, float thr, int best_inls) {
     const int pts_size = pts.rows;
     const float *pts_ptr = (float *) pts.data;
@@ -464,7 +468,7 @@ int get_inliers(bool *inliers, const cv::Vec4f &model, const cv::Mat &pts, float
 
     int num_inliers = 0;
 
-    std::fill(inliers, inliers + pts_size, false);
+    std::fill(inliers, inliers + pts_size, false);//将一个区间的元素都赋予指定的值，即在[first, last)范围内填充指定值。
     // According to statistical estimation, the calculation of the first 2/3 of the points is necessary and cannot be pruned
     int cut = pts_size * 2 / 3;
     for (int p = 0; p < cut; ++p) {
@@ -498,6 +502,7 @@ int get_inliers(bool *inliers, const cv::Vec4f &model, const cv::Mat &pts, float
  * @param max_iterations  Maximum number of iterations
  * @return number of points
  */
+// 根据当前机
 int
 get_plane(cv::Vec4f &best_model, bool *inliers, const cv::Mat &pts, float thr,
           int max_iterations, cv::Vec3f *normal, double normal_diff_thr) {

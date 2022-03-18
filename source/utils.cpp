@@ -6,12 +6,13 @@
  * @param model [a, b, c, d]
  * @return  Plane equation string
  */
+// 将平面坐标系数归一化
 std::string get_plane_expression_str(cv::Vec4f model) {
     double hom1 = sqrt(model[0] * model[0] + model[1] * model[1] + model[2] * model[2] + model[3] * model[3]);
     //hom1 = 1;
     char buf[64];
     sprintf(buf, "%fx + %fy + %fz + %f = 0", model[0] / hom1,
-            model[1] / hom1, model[1] / hom1, model[1] / hom1);
+            model[1] / hom1, model[2] / hom1, model[3] / hom1);
     return buf;
 }
 
@@ -23,6 +24,7 @@ std::string get_plane_expression_str(cv::Vec4f model) {
  * @param sync_io  IO synchronization
  * @return  true or false
  */
+// 这里使用了sync_with_stdio可以控制是否取消C++的输入缓存区
 bool save_points_label(const std::string &file_path, cv::InputArray &labels, bool sync_io) {
     cv::Mat labels_m = labels.getMat();
 
@@ -46,7 +48,7 @@ bool save_points_label(const std::string &file_path, cv::InputArray &labels, boo
         ofs << myptr[i] << "\n";
     }
 
-    ofs.flush();
+    ofs.flush(); //刷新缓存区
     ofs.close();
     std::ios::sync_with_stdio(true);
     return true;
@@ -148,7 +150,8 @@ bool read_point_cloud_ply_to_mat(cv::Mat &output, const std::string &file_path, 
  * @param size  Represents the range of the space cube, that is, the positive and negative range of the randomly generated plane
  * @param point_num  Indicates the number of generated points
  * @param noise_num  Indicates the number of additional noise points
- * @param models  Represents an array of all plane equations. Before passing in the parameters, you need to add a model equation of the form ax+by+cz+d=0 through models.push(Vec4f(a,b,c,d)) , The quantity does not need to be excessive
+ * @param models  Represents an array of all plane equations. Before passing in the parameters, 
+ * you need to add a model equation of the form ax+by+cz+d=0 through models.push(Vec4f(a,b,c,d)) , The quantity does not need to be excessive
  * @param point_cloud  Means the generated point cloud
  */
 void
