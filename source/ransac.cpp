@@ -301,7 +301,7 @@ bool VoxelGrid(cv::Mat &sampling_pts, cv::Mat &pts, float length, float width, f
         if (z_max < z) z_max = z;
     }   // find the minimum and maximum of xyz
 
-    unordered_map<string, vector<int>> grids;
+    unordered_map<string, vector<int>> grids;  // 字典键为体素标号(三个坐标) 值为在该体素块内的点云序号
 
     int init_size = size * 0.02;
     grids.reserve(init_size);
@@ -390,6 +390,7 @@ bool VoxelGrid(cv::Mat &sampling_pts, cv::Mat &pts, float length, float width, f
  * @return is the fitting result valid
  */
 // 最佳拟合平面使用最小二乘特征值分解的方法求解
+// 具体是总体最小二乘法(Total Least Square, TLS)可求解特殊平面
 bool total_least_squares_plane_estimate(cv::Vec4f &model, const cv::Mat &input, const int *sample, int sample_num) {
     const float *pts_ptr = (float *) input.data;
 
@@ -502,7 +503,14 @@ int get_inliers(bool *inliers, const cv::Vec4f &model, const cv::Mat &pts, float
  * @param max_iterations  Maximum number of iterations
  * @return number of points
  */
-// 根据当前机
+// 使用ransac算法进行最佳平面求解
+/*
+* 1. 随机选三个点，拟合平面
+* 2. 基于阈值计算平面内点数，当大于最佳平面内点数时，记为最佳平面
+*    若有预期法向，则当计算法向与预期法相相差较大时，重新计算跳过后面步骤
+* 3. 使用local ransac算法, 随机若干(20)采样内点，计算新平面, 若新内点个数超过最佳内点个数模型，则记为最佳平面
+* 4. 根据最佳内点个数，总点数，概率0.95以及最少拟合平面点数(3),计算最大迭代次数
+*/
 int
 get_plane(cv::Vec4f &best_model, bool *inliers, const cv::Mat &pts, float thr,
           int max_iterations, cv::Vec3f *normal, double normal_diff_thr) {
@@ -608,6 +616,11 @@ bool check_same_plane(cv::Vec4f &p1, cv::Vec4f &p2, double thr) {
  * @param thr
  * @return
  */
+
+ /*
+ * 其实就是求解两个响亮的夹角，当夹角小于给定阈值 则认为估计的平面法向与预计法向接近 预设的thr=0.06
+ * 下面的代码编写方法可解释为：向量a,b (a*b-|a|*|b|)^2 <=thr*|a|*|b|?
+ */
 bool check_same_normal(cv::Vec4f &actual_plane, cv::Vec3f &expect_normal, double thr) {
     double dot = (actual_plane[0] * expect_normal[0] + actual_plane[1] * expect_normal[1] +
                   actual_plane[2] * expect_normal[2]);
@@ -618,6 +631,6 @@ bool check_same_normal(cv::Vec4f &actual_plane, cv::Vec3f &expect_normal, double
     //double cos_sqr = dot * dot / (sqr_mold_a * sqr_mold_b);
     //return (cos_sqr - 1) * (cos_sqr - 1) < thr;
     double cos_sqr = dot * dot;
-    double sqr_modulu_ab = (sqr_modulu_a * sqr_modulu_b);
+    double sqr_modulu_ab = (sqr_modulu_a * sqr_modulu_b);  // 如果都为单位向量 则两个向量模长都为1
     return (cos_sqr - sqr_modulu_ab) * (cos_sqr - sqr_modulu_ab) <= thr * sqr_modulu_ab;
 }
