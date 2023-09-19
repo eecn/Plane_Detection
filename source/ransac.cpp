@@ -600,6 +600,7 @@ get_plane(cv::Vec4f &best_model, bool *inliers, const cv::Mat &pts, float thr,
  * @param p2  Plane 2
  * @return if the two planes are very close, return true, otherwise false
  */
+// 计算平面的归一化齐次坐标，计算对应分量的欧氏距离
 bool check_same_plane(cv::Vec4f &p1, cv::Vec4f &p2, double thr) {
     double hom1 = sqrt(p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2] + p1[3] * p1[3]);
     double hom2 = sqrt(p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2] + p2[3] * p2[3]);
@@ -618,7 +619,7 @@ bool check_same_plane(cv::Vec4f &p1, cv::Vec4f &p2, double thr) {
  */
 
  /*
- * 其实就是求解两个响亮的夹角，当夹角小于给定阈值 则认为估计的平面法向与预计法向接近 预设的thr=0.06
+ * 其实就是求解两个向量的夹角，当夹角小于给定阈值 则认为估计的平面法向与预计法向接近 预设的thr=0.06
  * 下面的代码编写方法可解释为：向量a,b (a*b-|a|*|b|)^2 <=thr*|a|*|b|?
  */
 bool check_same_normal(cv::Vec4f &actual_plane, cv::Vec3f &expect_normal, double thr) {
